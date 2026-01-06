@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { 
   Plus, 
@@ -35,7 +35,10 @@ import {
   ArrowDownZA,
   Image as ImageIcon,
   Tag,
-  BadgeDollarSign
+  BadgeDollarSign,
+  Filter,
+  Type,
+  RotateCcw
 } from 'lucide-react';
 
 // --- 数据接口定义 ---
@@ -87,7 +90,7 @@ const HEADER_MAP: Record<string, string[]> = {
   sku: ['sku', '编号', '编码', '货号', '代号', 'id'],
   name: ['名称', '品名', '产品名称', '标题', '商品', 'name'],
   spec: ['规格', '参数', '尺寸', '描述', 'spec'],
-  unit: ['单位', '计量', 'unit'],
+  unit: ['单位', '计量', 'unit', '规'],
   platformPrice: ['平台价', '我方成本', '成本', '成本价', 'platform'],
   channelPrice: ['渠道价', '分销价', '经销商价', '结算价', 'channel'],
   retailPrice: ['零售', '零售价', '原价', '市场价', '标价', 'retail'],
@@ -164,6 +167,38 @@ const ProductImage = ({ src, className, name, onHover }: { src?: string, classNa
   );
 };
 
+function FilterRow({ label, icon: Icon, items, activeItem, onSelect, activeColor = "bg-[#1B4332]" }: { label: string, icon: any, items: string[], activeItem: string, onSelect: (val: string) => void, activeColor?: string }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  return (
+    <div className="flex flex-col gap-1.5 animate-in fade-in slide-in-from-left-2 duration-300">
+      <div className="flex justify-between items-center px-1">
+        <p className="text-[10px] font-bold text-[#B08D57] uppercase tracking-[0.1em] flex items-center gap-1.5">
+          <Icon size={12}/> {label}
+        </p>
+      </div>
+      <div className="relative group/scroll">
+        <div 
+          ref={scrollRef}
+          className="flex gap-2 overflow-x-auto pb-2.5 scroll-smooth cursor-grab active:cursor-grabbing scrollbar-thin"
+        >
+          {items.map(item => (
+            <button 
+              key={item} 
+              onClick={() => onSelect(item)} 
+              className={`px-4 py-2 text-[11px] rounded-full border whitespace-nowrap font-bold transition-all shrink-0 select-none ${activeItem === item ? `${activeColor} text-white border-transparent shadow-md transform scale-105` : 'bg-white text-gray-400 border-[#E5E1D1]/50 hover:border-[#1B4332] hover:text-[#1B4332]'}`}
+            >
+              {item}
+            </button>
+          ))}
+        </div>
+        {/* 指示遮罩，提示可右拉 */}
+        <div className="absolute right-0 top-0 bottom-2.5 w-16 bg-gradient-to-l from-white via-white/40 to-transparent pointer-events-none opacity-80 group-hover/scroll:opacity-20 transition-opacity" />
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem(STORAGE_KEY_AUTH) === 'true');
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
@@ -187,6 +222,8 @@ function App() {
   const [editingTierId, setEditingTierId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('全部');
+  const [activeUnit, setActiveUnit] = useState('全部');
+  const [activeSpec, setActiveSpec] = useState('全部');
   const [sortBy, setSortBy] = useState<'default' | 'price-asc' | 'price-desc'>('default');
   const [lastAddedId, setLastAddedId] = useState<string | null>(null);
   const [hoveredImage, setHoveredImage] = useState<{url: string, x: number, y: number} | null>(null);
@@ -208,6 +245,8 @@ function App() {
   });
 
   const categories = useMemo(() => ['全部', ...Array.from(new Set(products.map(p => p.category).filter(Boolean)))], [products]);
+  const units = useMemo(() => ['全部', ...Array.from(new Set(products.map(p => p.unit).filter(Boolean)))], [products]);
+  const specs = useMemo(() => ['全部', ...Array.from(new Set(products.map(p => p.spec).filter(Boolean)))], [products]);
   const currentSet = useMemo(() => giftSets.find(s => s.id === currentSetId) || null, [giftSets, currentSetId]);
 
   const sortedFilteredProducts = useMemo(() => {
@@ -215,14 +254,24 @@ function App() {
       const match = (p.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
                     (p.sku || '').toLowerCase().includes(searchTerm.toLowerCase());
       const catMatch = activeCategory === '全部' || p.category === activeCategory;
-      return match && catMatch;
+      const unitMatch = activeUnit === '全部' || p.unit === activeUnit;
+      const specMatch = activeSpec === '全部' || p.spec === activeSpec;
+      return match && catMatch && unitMatch && specMatch;
     });
     
     if (sortBy === 'price-asc') result.sort((a, b) => a.channelPrice - b.channelPrice);
     else if (sortBy === 'price-desc') result.sort((a, b) => b.channelPrice - a.channelPrice);
     
     return result;
-  }, [searchTerm, activeCategory, sortBy, products]);
+  }, [searchTerm, activeCategory, activeUnit, activeSpec, sortBy, products]);
+
+  const handleResetFilters = () => {
+    setSearchTerm('');
+    setActiveCategory('全部');
+    setActiveUnit('全部');
+    setActiveSpec('全部');
+    setSortBy('default');
+  };
 
   const handleImageHover = (url: string | null, e: React.MouseEvent) => {
     if (!url) {
@@ -281,6 +330,8 @@ function App() {
       const mapping = {
         sku: findIndex(HEADER_MAP.sku),
         name: findIndex(HEADER_MAP.name),
+        spec: findIndex(HEADER_MAP.spec),
+        unit: findIndex(HEADER_MAP.unit),
         platformPrice: findIndex(HEADER_MAP.platformPrice),
         channelPrice: findIndex(HEADER_MAP.channelPrice),
         retailPrice: findIndex(HEADER_MAP.retailPrice),
@@ -294,7 +345,8 @@ function App() {
           id: Date.now().toString() + i,
           sku: mapping.sku !== -1 ? cols[mapping.sku] : `SKU-${i}`,
           name: mapping.name !== -1 ? cols[mapping.name] : '未命名',
-          spec: '', unit: '件', 
+          spec: mapping.spec !== -1 ? cols[mapping.spec] : '', 
+          unit: mapping.unit !== -1 ? cols[mapping.unit] : '件', 
           platformPrice: mapping.platformPrice !== -1 ? cleanNum(cols[mapping.platformPrice]) : 0,
           channelPrice: mapping.channelPrice !== -1 ? cleanNum(cols[mapping.channelPrice]) : 0,
           retailPrice: mapping.retailPrice !== -1 ? cleanNum(cols[mapping.retailPrice]) : 0,
@@ -313,7 +365,7 @@ function App() {
     if (!currentSet) return;
     
     let csvContent = "\uFEFF"; // UTF-8 BOM
-    csvContent += "方案名称,档位预算,选品折扣,数量,产品名称,SKU,零售价,折后价(计入预算),我方成本(平台价),素材CDN,杂费合计,单包税额,含税单价,全案总额\n";
+    csvContent += "方案名称,档位预算,选品折扣,数量,产品名称,SKU,规格,单位,零售价,折后价(计入预算),我方成本(平台价),素材CDN,杂费合计,单包税额,含税单价,全案总额\n";
 
     currentSet.tiers.forEach(tier => {
       const items = tier.selectedProductIds.map(id => products.find(p => p.id === id)).filter(Boolean) as Product[];
@@ -327,13 +379,13 @@ function App() {
       const totalAmount = finalUnitSellingPrice * tier.quantity;
 
       if (items.length === 0) {
-        csvContent += `${currentSet.name},${tier.targetTierPrice},${tier.discountRate}%,${tier.quantity},未选品,-,0,0,0,-,${otherCosts},0,${finalUnitSellingPrice.toFixed(2)},${totalAmount.toFixed(2)}\n`;
+        csvContent += `${currentSet.name},${tier.targetTierPrice},${tier.discountRate}%,${tier.quantity},未选品,-,-,-,0,0,0,-,${otherCosts},0,${finalUnitSellingPrice.toFixed(2)},${totalAmount.toFixed(2)}\n`;
       } else {
         items.forEach((it, idx) => {
           if (idx === 0) {
-            csvContent += `${currentSet.name},${tier.targetTierPrice},${tier.discountRate}%,${tier.quantity},"${it.name}",${it.sku},${it.retailPrice},${(it.retailPrice * (tier.discountRate/100)).toFixed(2)},${it.platformPrice},"${it.image}",${otherCosts},${unitTax.toFixed(2)},${finalUnitSellingPrice.toFixed(2)},${totalAmount.toFixed(2)}\n`;
+            csvContent += `${currentSet.name},${tier.targetTierPrice},${tier.discountRate}%,${tier.quantity},"${it.name}",${it.sku},"${it.spec}",${it.unit},${it.retailPrice},${(it.retailPrice * (tier.discountRate/100)).toFixed(2)},${it.platformPrice},"${it.image}",${otherCosts},${unitTax.toFixed(2)},${finalUnitSellingPrice.toFixed(2)},${totalAmount.toFixed(2)}\n`;
           } else {
-            csvContent += `,,, ,"${it.name}",${it.sku},${it.retailPrice},${(it.retailPrice * (tier.discountRate/100)).toFixed(2)},${it.platformPrice},"${it.image}",,, \n`;
+            csvContent += `,,, ,"${it.name}",${it.sku},"${it.spec}",${it.unit},${it.retailPrice},${(it.retailPrice * (tier.discountRate/100)).toFixed(2)},${it.platformPrice},"${it.image}",,, \n`;
           }
         });
       }
@@ -528,40 +580,65 @@ function App() {
       <main className="flex-1 flex overflow-hidden">
         {currentSet && (
           <aside className="w-[380px] border-r border-[#E5E1D1] bg-white flex flex-col shrink-0 z-20 shadow-xl">
-            <div className="p-4 space-y-3 border-b border-[#F5F2E8] bg-white">
-              <div className="flex flex-col gap-2">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                  <input 
-                    type="text" placeholder="查找品名/SKU..." 
-                    className="w-full pl-9 pr-4 py-2.5 bg-[#F9F7F2] border border-[#E5E1D1] rounded-2xl text-sm outline-none focus:border-[#1B4332] font-medium"
-                    value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-                  />
+            <div className="p-4 space-y-4 border-b border-[#F5F2E8] bg-white">
+              <div className="flex flex-col gap-2.5">
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                    <input 
+                      type="text" placeholder="查找品名/SKU..." 
+                      className="w-full pl-9 pr-4 py-2 bg-[#F9F7F2] border border-[#E5E1D1] rounded-xl text-xs outline-none focus:border-[#1B4332] font-medium"
+                      value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                  <button onClick={handleResetFilters} className="p-2 bg-gray-50 text-gray-400 rounded-xl hover:text-[#1B4332] transition-colors" title="重置筛选"><RotateCcw size={16}/></button>
                 </div>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
                     <select 
                       value={sortBy} 
                       onChange={(e) => setSortBy(e.target.value as any)}
-                      className="w-full appearance-none pl-4 pr-10 py-2 bg-white border border-[#E5E1D1] rounded-xl text-[10px] font-bold text-[#1B4332] outline-none focus:border-[#1B4332] cursor-pointer"
+                      className="w-full appearance-none pl-3 pr-8 py-2 bg-white border border-[#E5E1D1] rounded-xl text-[10px] font-bold text-[#1B4332] outline-none focus:border-[#1B4332] cursor-pointer"
                     >
                       <option value="default">默认排序</option>
                       <option value="price-asc">经销价: 低到高</option>
                       <option value="price-desc">经销价: 高到低</option>
                     </select>
-                    <ArrowUpDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none" size={12} />
+                    <ArrowUpDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none" size={12} />
                   </div>
                 </div>
               </div>
-              <div className="flex gap-1 overflow-x-auto no-scrollbar pb-1">
-                {categories.map(cat => (
-                  <button key={cat} onClick={() => setActiveCategory(cat)} className={`px-3 py-1 text-[10px] rounded-full border whitespace-nowrap font-bold transition-all ${activeCategory === cat ? 'bg-[#1B4332] text-white border-[#1B4332]' : 'bg-gray-50 text-gray-400 border-transparent hover:border-gray-200'}`}>
-                    {cat}
-                  </button>
-                ))}
+              
+              <div className="space-y-5 py-1">
+                <FilterRow 
+                  label="产品分类" 
+                  icon={Layers} 
+                  items={categories} 
+                  activeItem={activeCategory} 
+                  onSelect={setActiveCategory} 
+                />
+                
+                <FilterRow 
+                  label="规格筛选" 
+                  icon={Type} 
+                  items={specs} 
+                  activeItem={activeSpec} 
+                  onSelect={setActiveSpec}
+                  activeColor="bg-[#1B4332]"
+                />
+
+                <FilterRow 
+                  label="单位筛选" 
+                  icon={Filter} 
+                  items={units} 
+                  activeItem={activeUnit} 
+                  onSelect={setActiveUnit}
+                  activeColor="bg-[#B08D57]"
+                />
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+            
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-[#FDFCF8]/30">
               {sortedFilteredProducts.map(p => (
                 <div key={p.id} onClick={() => activeTierId && addToTier(p.id)} className={`group relative bg-white border rounded-2xl p-2.5 flex gap-3 cursor-pointer transition-all ${!activeTierId ? 'opacity-40 grayscale cursor-not-allowed' : 'hover:border-[#1B4332] shadow-sm active:scale-95'} ${lastAddedId === p.id ? 'ring-2 ring-[#1B4332]' : 'border-[#E5E1D1]'}`}>
                   <ProductImage src={p.image} name={p.name} className="w-16 h-16 rounded-xl object-cover shrink-0 bg-gray-50 shadow-sm" onHover={handleImageHover} />
@@ -570,15 +647,19 @@ function App() {
                     <p className="text-[10px] text-[#B08D57] font-bold mt-1 tracking-tight">
                        分销: ¥{p.channelPrice} | 零售: ¥{p.retailPrice}
                     </p>
-                    <p className="text-[8px] text-gray-300 mt-1 uppercase font-mono font-bold tracking-widest">{p.sku}</p>
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      {p.spec && <span className="text-[8px] bg-[#1B4332]/5 text-[#1B4332] px-1.5 py-0.5 rounded font-bold">{p.spec}</span>}
+                      <span className="text-[8px] bg-[#B08D57]/5 text-[#B08D57] px-1.5 py-0.5 rounded font-bold">{p.unit}</span>
+                      <p className="text-[8px] text-gray-300 uppercase font-mono font-bold tracking-widest">{p.sku}</p>
+                    </div>
                   </div>
                   {activeTierId && <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-[#1B4332] text-white p-1 rounded-full shadow-lg"><Plus size={12}/></div>}
                 </div>
               ))}
               {sortedFilteredProducts.length === 0 && (
                 <div className="py-20 text-center opacity-30 flex flex-col items-center">
-                   <Search size={32} className="mb-2"/>
-                   <p className="text-xs font-bold uppercase tracking-widest">NO PRODUCTS FOUND</p>
+                   <Search size={32} className="mb-2 text-[#E5E1D1]"/>
+                   <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">无匹配结果</p>
                 </div>
               )}
             </div>
@@ -669,7 +750,7 @@ function App() {
                                <p className="text-[11px] font-bold text-[#1B4332] truncate">{it.name}</p>
                                <div className="flex justify-between mt-0.5 items-baseline">
                                  <p className="text-[8px] text-[#B08D57] font-bold">折后: ¥{(it.retailPrice * (tier.discountRate / 100)).toFixed(1)}</p>
-                                 <p className="text-[7px] text-gray-300 font-medium">零售: ¥{it.retailPrice}</p>
+                                 <p className="text-[7px] text-gray-300 font-medium">{it.spec ? `${it.spec}/` : ''}{it.unit} | ¥{it.retailPrice}</p>
                                </div>
                             </div>
                             <button onClick={(e) => { e.stopPropagation(); removeFromTier(tier.id, idx); }} className="opacity-0 group-hover/item:opacity-100 p-1.5 text-gray-300 hover:text-red-500 transition-all"><X size={12}/></button>
@@ -805,7 +886,7 @@ function App() {
                 <thead className="bg-[#FDFCF8] text-[10px] font-bold text-[#B08D57] border-b border-[#E5E1D1] sticky top-0 z-50 uppercase tracking-widest">
                   <tr>
                     <th className="px-6 py-4">产品基本信息</th>
-                    <th className="px-4 py-4">分类</th>
+                    <th className="px-4 py-4">分类/规格/单位</th>
                     <th className="px-4 py-4 text-center">价格体系 (¥)</th>
                     <th className="px-4 py-4">素材CDN地址</th>
                     <th className="px-6 py-4 text-right">操作</th>
@@ -822,7 +903,13 @@ function App() {
                         </div>
                       </td>
                       <td className="px-4 py-4">
-                        <input className="text-[10px] font-bold text-[#B08D57] bg-[#B08D57]/5 rounded px-3 py-1 outline-none border border-transparent focus:border-[#B08D57]/20" value={p.category} onChange={(e) => setProducts(products.map(x => x.id === p.id ? {...x, category: e.target.value} : x))} />
+                        <div className="flex flex-col gap-2">
+                          <input className="text-[10px] font-bold text-[#1B4332] bg-[#1B4332]/5 rounded px-2 py-1 outline-none border border-transparent focus:border-[#1B4332]/20" placeholder="分类" value={p.category} onChange={(e) => setProducts(products.map(x => x.id === p.id ? {...x, category: e.target.value} : x))} />
+                          <div className="flex gap-2">
+                            <input className="flex-1 text-[10px] font-bold text-gray-500 bg-gray-50 rounded px-2 py-1 outline-none border border-transparent focus:border-gray-200" placeholder="规格" value={p.spec} onChange={(e) => setProducts(products.map(x => x.id === p.id ? {...x, spec: e.target.value} : x))} />
+                            <input className="flex-1 text-[10px] font-bold text-[#B08D57] bg-[#B08D57]/5 rounded px-2 py-1 outline-none border border-transparent focus:border-[#B08D57]/20" placeholder="单位" value={p.unit} onChange={(e) => setProducts(products.map(x => x.id === p.id ? {...x, unit: e.target.value} : x))} />
+                          </div>
+                        </div>
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex gap-4 justify-center">
@@ -883,6 +970,11 @@ function App() {
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #E5E1D1; border-radius: 10px; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+        
+        /* 针对筛选区的微调滚动条 */
+        .scrollbar-thin::-webkit-scrollbar { height: 3px; }
+        .scrollbar-thin::-webkit-scrollbar-thumb { background: #E5E1D1; border-radius: 4px; }
+        .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
       `}</style>
     </div>
   );
