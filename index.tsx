@@ -644,80 +644,80 @@ function App() {
                   const active = activeTierId === tier.id;
 
                   return (
-                    <div key={tier.id} onClick={() => setActiveTierId(tier.id)} className={`bg-white rounded-[40px] border-2 flex flex-col h-[820px] overflow-hidden transition-all duration-500 ${active ? 'border-[#1B4332] shadow-2xl scale-[1.02]' : 'border-transparent shadow-lg opacity-90'}`}>
-                      <div className={`px-8 py-6 flex justify-between items-center ${active ? 'bg-[#1B4332] text-white' : 'bg-[#FDFCF8] border-b'}`}>
+                    <div key={tier.id} onClick={() => setActiveTierId(tier.id)} className={`bg-white rounded-[40px] border-2 flex flex-col h-[72vh] min-h-[650px] max-h-[850px] overflow-hidden transition-all duration-500 ${active ? 'border-[#1B4332] shadow-2xl scale-[1.02]' : 'border-transparent shadow-lg opacity-90'}`}>
+                      <div className={`px-6 py-5 flex justify-between items-center ${active ? 'bg-[#1B4332] text-white' : 'bg-[#FDFCF8] border-b'}`}>
                         <div>
-                          <p className="text-xl font-bold font-serif">{tier.targetTierPrice} 元预算档</p>
-                          <p className={`text-[10px] font-bold mt-1 ${active ? 'opacity-60' : 'text-gray-400'}`}>选品折扣: {tier.discountRate}% | 数量: {tier.quantity}套</p>
+                          <p className="text-lg font-bold font-serif">{tier.targetTierPrice} 元预算档</p>
+                          <p className={`text-[9px] font-bold mt-0.5 ${active ? 'opacity-60' : 'text-gray-400'}`}>选品折扣: {tier.discountRate}% | 数量: {tier.quantity}套</p>
                         </div>
                         <div className="flex gap-1">
-                          <button onClick={(e) => { e.stopPropagation(); handleOpenTierSettings(tier); }} className={`p-2 rounded-xl transition-all ${active ? 'hover:bg-white/10 text-white' : 'text-gray-300 hover:text-[#B08D57]'}`}><Settings size={18}/></button>
-                          <button onClick={(e) => { e.stopPropagation(); if(confirm('确认移除此档位？')) setGiftSets(prev => prev.map(s => s.id === currentSetId ? { ...s, tiers: s.tiers.filter(t => t.id !== tier.id) } : s)); }} className={`p-2 rounded-xl transition-all ${active ? 'hover:bg-white/10 text-white' : 'text-gray-300 hover:text-red-500'}`}><Trash2 size={18}/></button>
+                          <button onClick={(e) => { e.stopPropagation(); handleOpenTierSettings(tier); }} className={`p-2 rounded-xl transition-all ${active ? 'hover:bg-white/10 text-white' : 'text-gray-300 hover:text-[#B08D57]'}`}><Settings size={16}/></button>
+                          <button onClick={(e) => { e.stopPropagation(); if(confirm('确认移除此档位？')) setGiftSets(prev => prev.map(s => s.id === currentSetId ? { ...s, tiers: s.tiers.filter(t => t.id !== tier.id) } : s)); }} className={`p-2 rounded-xl transition-all ${active ? 'hover:bg-white/10 text-white' : 'text-gray-300 hover:text-red-500'}`}><Trash2 size={16}/></button>
                         </div>
                       </div>
 
-                      <div className="flex-1 overflow-y-auto p-6 space-y-3 custom-scrollbar bg-[#FDFCF8]/40">
+                      <div className="flex-1 overflow-y-auto p-4 space-y-2.5 custom-scrollbar bg-[#FDFCF8]/40">
                         {items.length === 0 ? (
                           <div className="h-full flex flex-col items-center justify-center text-gray-200 opacity-50">
-                             <Plus size={40} className="mb-2" />
-                             <p className="text-[10px] font-bold uppercase tracking-widest">请点击左侧产品选入</p>
+                             <Plus size={32} className="mb-2" />
+                             <p className="text-[9px] font-bold uppercase tracking-widest">请点击左侧产品选入</p>
                           </div>
                         ) : items.map((it, idx) => (
-                          <div key={idx} className="flex items-center gap-3 p-3 bg-white border border-gray-100 rounded-2xl shadow-sm group/item animate-in fade-in slide-in-from-left-2">
-                            <ProductImage src={it.image} name={it.name} className="w-12 h-12 rounded-xl object-cover shrink-0 bg-gray-50 border" onHover={handleImageHover} />
+                          <div key={idx} className="flex items-center gap-2.5 p-2 bg-white border border-gray-100 rounded-xl shadow-sm group/item animate-in fade-in slide-in-from-left-2 transition-all hover:border-[#1B4332]/30">
+                            <ProductImage src={it.image} name={it.name} className="w-10 h-10 rounded-lg object-cover shrink-0 bg-gray-50 border" onHover={handleImageHover} />
                             <div className="flex-1 min-w-0">
-                               <p className="text-xs font-bold text-[#1B4332] truncate">{it.name}</p>
-                               <div className="flex justify-between mt-1 items-baseline">
-                                 <p className="text-[9px] text-[#B08D57] font-bold">折后: ¥{(it.retailPrice * (tier.discountRate / 100)).toFixed(1)}</p>
-                                 <p className="text-[8px] text-gray-300 font-medium">零售: ¥{it.retailPrice}</p>
+                               <p className="text-[11px] font-bold text-[#1B4332] truncate">{it.name}</p>
+                               <div className="flex justify-between mt-0.5 items-baseline">
+                                 <p className="text-[8px] text-[#B08D57] font-bold">折后: ¥{(it.retailPrice * (tier.discountRate / 100)).toFixed(1)}</p>
+                                 <p className="text-[7px] text-gray-300 font-medium">零售: ¥{it.retailPrice}</p>
                                </div>
                             </div>
-                            <button onClick={(e) => { e.stopPropagation(); removeFromTier(tier.id, idx); }} className="opacity-0 group-hover/item:opacity-100 p-2 text-gray-300 hover:text-red-500 transition-all"><X size={14}/></button>
+                            <button onClick={(e) => { e.stopPropagation(); removeFromTier(tier.id, idx); }} className="opacity-0 group-hover/item:opacity-100 p-1.5 text-gray-300 hover:text-red-500 transition-all"><X size={12}/></button>
                           </div>
                         ))}
                       </div>
 
-                      <div className={`p-8 border-t transition-all ${isOverBudget ? 'bg-red-50/50' : 'bg-[#FDFCF8]'}`}>
-                        <div className="space-y-4">
-                          <div className="grid grid-cols-2 gap-x-2 gap-y-3 text-[9px] font-bold text-gray-400 uppercase border-b pb-4 border-black/5">
+                      <div className={`p-6 border-t transition-all shrink-0 ${isOverBudget ? 'bg-red-50/50' : 'bg-[#FDFCF8]'}`}>
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 text-[8px] font-bold text-gray-400 uppercase border-b pb-3 border-black/5">
                              <div className="flex justify-between items-center"><span>选品总零售价:</span> <span className="text-gray-700">¥{totalRetail.toFixed(1)}</span></div>
                              <div className="flex justify-between items-center pl-2 border-l border-black/5"><span>杂费包材:</span> <span className="text-gray-700">¥{otherCosts.toFixed(1)}</span></div>
                              <div className="flex justify-between items-center"><span>我方总成本:</span> <span className="text-gray-700">¥{unitOurTotalCost.toFixed(1)}</span></div>
                              <div className="flex justify-between items-center pl-2 border-l border-black/5"><span>单包税额:</span> <span className="text-gray-700">¥{unitTax.toFixed(1)}</span></div>
                           </div>
 
-                          <div className="space-y-3">
+                          <div className="space-y-2">
                              <div>
-                                <div className="flex justify-between items-center mb-2">
-                                  <p className="text-[10px] font-black uppercase text-[#B08D57] flex items-center gap-1"><Tag size={12}/> 折后零售总值 (对标预算)</p>
-                                  {isOverBudget && <span className="text-[9px] bg-red-500 text-white px-2 py-0.5 rounded-full font-bold animate-pulse">超出预算!</span>}
+                                <div className="flex justify-between items-center mb-1">
+                                  <p className="text-[9px] font-black uppercase text-[#B08D57] flex items-center gap-1"><Tag size={10}/> 折后零售总值 (对标预算)</p>
+                                  {isOverBudget && <span className="text-[8px] bg-red-500 text-white px-1.5 py-0.5 rounded-full font-bold animate-pulse">超出预算!</span>}
                                 </div>
-                                <div className={`bg-white p-4 rounded-2xl border-2 flex justify-between items-center ${isOverBudget ? 'border-red-400 shadow-lg shadow-red-100' : 'border-[#1B4332]/10 shadow-sm'}`}>
-                                  <p className={`text-2xl font-serif font-black ${isOverBudget ? 'text-red-600' : 'text-[#1B4332]'}`}>¥{productDiscountedPrice.toFixed(1)}</p>
+                                <div className={`bg-white p-3 rounded-xl border flex justify-between items-center ${isOverBudget ? 'border-red-400 shadow-md shadow-red-100' : 'border-[#1B4332]/10 shadow-sm'}`}>
+                                  <p className={`text-xl font-serif font-black ${isOverBudget ? 'text-red-600' : 'text-[#1B4332]'}`}>¥{productDiscountedPrice.toFixed(1)}</p>
                                   <div className="text-right">
-                                     <p className="text-[8px] text-gray-400 font-bold uppercase tracking-widest">预算偏差</p>
-                                     <p className={`text-xs font-black ${isOverBudget ? 'text-red-500' : 'text-green-600'}`}>
+                                     <p className="text-[7px] text-gray-400 font-bold uppercase tracking-widest">预算偏差</p>
+                                     <p className={`text-[10px] font-black ${isOverBudget ? 'text-red-500' : 'text-green-600'}`}>
                                        {productDiscountedPrice > tier.targetTierPrice ? `+${(productDiscountedPrice - tier.targetTierPrice).toFixed(1)}` : `-${(tier.targetTierPrice - productDiscountedPrice).toFixed(1)}`}
                                      </p>
                                   </div>
                                 </div>
                              </div>
 
-                             <div className="bg-white/60 p-4 border border-black/5 rounded-2xl flex justify-between items-center group/total">
+                             <div className="bg-white/60 p-3 border border-black/5 rounded-xl flex justify-between items-center group/total">
                                 <div>
-                                   <p className="text-[8px] text-gray-400 font-bold uppercase tracking-widest flex items-center gap-1"><BadgeDollarSign size={10}/> 含税总结算单价</p>
-                                   <p className="text-lg font-black text-[#1B4332]">¥{finalUnitSellingPrice.toFixed(1)}</p>
+                                   <p className="text-[7px] text-gray-400 font-bold uppercase tracking-widest flex items-center gap-1"><BadgeDollarSign size={8}/> 含税总结算单价</p>
+                                   <p className="text-base font-black text-[#1B4332]">¥{finalUnitSellingPrice.toFixed(1)}</p>
                                 </div>
                                 <div className="text-right">
-                                   <p className="text-[8px] text-gray-400 font-bold uppercase tracking-widest">我方利润率</p>
-                                   <p className={`text-sm font-black ${unitUntaxedPrice - unitOurTotalCost > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                   <p className="text-[7px] text-gray-400 font-bold uppercase tracking-widest">我方利润率</p>
+                                   <p className={`text-xs font-black ${unitUntaxedPrice - unitOurTotalCost > 0 ? 'text-green-600' : 'text-red-600'}`}>
                                      {unitUntaxedPrice > 0 ? (((unitUntaxedPrice - unitOurTotalCost) / unitUntaxedPrice) * 100).toFixed(1) : 0}%
                                    </p>
                                 </div>
                              </div>
                              
                              <div className="flex justify-center">
-                                <p className="text-[9px] font-bold text-gray-300 font-mono">全案结算总值: ¥{(finalUnitSellingPrice * tier.quantity).toLocaleString()}</p>
+                                <p className="text-[8px] font-bold text-gray-300 font-mono">全案总额: ¥{(finalUnitSellingPrice * tier.quantity).toLocaleString()}</p>
                              </div>
                           </div>
                         </div>
@@ -879,7 +879,7 @@ function App() {
         @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@700;900&family=Inter:wght@400;500;600;700;900&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #FDFCF8; -webkit-font-smoothing: antialiased; }
         .font-serif { font-family: 'Noto Serif SC', serif; }
-        .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #E5E1D1; border-radius: 10px; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
