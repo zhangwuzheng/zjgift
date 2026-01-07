@@ -48,10 +48,10 @@ interface Product {
   name: string;        
   spec: string;        
   unit: string;        
-  platformPrice: number; // 我方采购成本价
-  channelPrice: number;  // 经销商标准分销价
-  retailPrice: number;   // 市场零售价
-  image: string;         // 对应表格中的“素材CDN”
+  platformPrice: number; 
+  channelPrice: number;  
+  retailPrice: number;   
+  image: string;         
   manufacturer: string;  
   category: string;      
 }
@@ -59,13 +59,13 @@ interface Product {
 interface Tier {
   id: string;
   label: string;
-  targetTierPrice: number;   // 客户设定的档位目标值 (对比折后价)
-  discountRate: number;      // 该档位的选品折扣 (如 80 代表 8折)
-  quantity: number;          // 礼包套数
-  boxCost: number;           // 礼盒包材成本
-  laborCost: number;         // 人工打包费用
-  logisticsCost: number;     // 快递物流费用
-  taxRate: number;           // 税率 (%)
+  targetTierPrice: number;   
+  discountRate: number;      
+  quantity: number;          
+  boxCost: number;           
+  laborCost: number;         
+  logisticsCost: number;     
+  taxRate: number;           
   selectedProductIds: string[];
 }
 
@@ -76,8 +76,8 @@ interface GiftSet {
   tiers: Tier[];
 }
 
-const STORAGE_KEY_PRODUCTS = 'SHANSHUI_DB_PRODUCTS_V13';
-const STORAGE_KEY_GIFTSETS = 'SHANSHUI_DB_GIFTSETS_V13';
+const STORAGE_KEY_PRODUCTS = 'SHANSHUI_DB_PRODUCTS_V15';
+const STORAGE_KEY_GIFTSETS = 'SHANSHUI_DB_GIFTSETS_V15';
 const STORAGE_KEY_AUTH = 'SHANSHUI_AUTH_V1';
 
 const LOGO_URL = "https://img.lenyiin.com/app/hide.php?key=S0d4Y1N4YThGNkRHbnV4U1lrL1BBMDVncmc1Q1ZhZkZPR2c4dUg0PQ==";
@@ -86,17 +86,18 @@ const DEFAULT_PRODUCTS: Product[] = [
   { id: '1', sku: 'ZS-CJ-001', name: '青山远黛-禅意茶具', spec: '一壶四杯', unit: '套', platformPrice: 150, channelPrice: 299, retailPrice: 599, image: 'https://images.unsplash.com/photo-1576020488411-26298acb51bd?auto=format&fit=crop&q=80&w=400', manufacturer: '景德镇文创', category: '茶具' },
 ];
 
+// 严格对应用户提供的表头名称
 const HEADER_MAP: Record<string, string[]> = {
-  sku: ['sku', '编号', '编码', '货号', '代号', 'id'],
-  name: ['名称', '品名', '产品名称', '标题', '商品', 'name'],
-  spec: ['规格', '参数', '尺寸', '描述', 'spec'],
-  unit: ['单位', '计量', 'unit', '规'],
-  platformPrice: ['平台价', '我方成本', '成本', '成本价', 'platform'],
-  channelPrice: ['渠道价', '分销价', '经销商价', '结算价', 'channel'],
-  retailPrice: ['零售', '零售价', '原价', '市场价', '标价', 'retail'],
-  image: ['素材cdn', '素材', '图片', '图', '链接', 'url', 'image'], // 优先匹配“素材CDN”
-  manufacturer: ['厂家', '品牌', '供货商', '来源'],
-  category: ['分类', '类目', '类型', '分组']
+  sku: ['SKU编码', 'sku', '编号'],
+  name: ['产品名称', '品名', '名称'],
+  spec: ['规格', '尺寸', '参数'],
+  unit: ['单位', '量词'],
+  platformPrice: ['平台价', '采购价', '成本'],
+  channelPrice: ['渠道价', '分销价', '结算价'],
+  retailPrice: ['零售价', '市场价'],
+  image: ['素材CDN', '图片', '链接'],
+  manufacturer: ['厂商名称', '厂家', '品牌'],
+  category: ['电商分类', '分类', '类目']
 };
 
 function Modal({ isOpen, onClose, title, children, maxWidth = "max-w-md" }: { isOpen: boolean, onClose: () => void, title: string, children?: React.ReactNode, maxWidth?: string }) {
@@ -145,7 +146,6 @@ const ProductImage = ({ src, className, name, onHover }: { src?: string, classNa
     return (
       <div className={`${className} bg-[#F9F7F2] flex flex-col items-center justify-center text-[#E5E1D1] border border-[#E5E1D1] overflow-hidden`}>
         <ImageIcon size={className?.includes('w-12') ? 16 : 24} />
-        {name && <span className="text-[7px] text-center mt-1 px-1 truncate w-full font-bold opacity-60">{name.substring(0, 4)}</span>}
       </div>
     );
   }
@@ -154,10 +154,7 @@ const ProductImage = ({ src, className, name, onHover }: { src?: string, classNa
     <img 
       src={imgUrl} 
       className={`${className} object-cover cursor-zoom-in`}
-      onError={() => {
-        console.warn(`Image load failed for: ${imgUrl}`);
-        setError(true);
-      }} 
+      onError={() => setError(true)} 
       onMouseEnter={handleMouseEnter}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
@@ -192,7 +189,6 @@ function FilterRow({ label, icon: Icon, items, activeItem, onSelect, activeColor
             </button>
           ))}
         </div>
-        {/* 指示遮罩，提示可右拉 */}
         <div className="absolute right-0 top-0 bottom-2.5 w-16 bg-gradient-to-l from-white via-white/40 to-transparent pointer-events-none opacity-80 group-hover/scroll:opacity-20 transition-opacity" />
       </div>
     </div>
@@ -222,8 +218,6 @@ function App() {
   const [editingTierId, setEditingTierId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('全部');
-  const [activeUnit, setActiveUnit] = useState('全部');
-  const [activeSpec, setActiveSpec] = useState('全部');
   const [sortBy, setSortBy] = useState<'default' | 'price-asc' | 'price-desc'>('default');
   const [lastAddedId, setLastAddedId] = useState<string | null>(null);
   const [hoveredImage, setHoveredImage] = useState<{url: string, x: number, y: number} | null>(null);
@@ -245,8 +239,6 @@ function App() {
   });
 
   const categories = useMemo(() => ['全部', ...Array.from(new Set(products.map(p => p.category).filter(Boolean)))], [products]);
-  const units = useMemo(() => ['全部', ...Array.from(new Set(products.map(p => p.unit).filter(Boolean)))], [products]);
-  const specs = useMemo(() => ['全部', ...Array.from(new Set(products.map(p => p.spec).filter(Boolean)))], [products]);
   const currentSet = useMemo(() => giftSets.find(s => s.id === currentSetId) || null, [giftSets, currentSetId]);
 
   const sortedFilteredProducts = useMemo(() => {
@@ -254,22 +246,18 @@ function App() {
       const match = (p.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
                     (p.sku || '').toLowerCase().includes(searchTerm.toLowerCase());
       const catMatch = activeCategory === '全部' || p.category === activeCategory;
-      const unitMatch = activeUnit === '全部' || p.unit === activeUnit;
-      const specMatch = activeSpec === '全部' || p.spec === activeSpec;
-      return match && catMatch && unitMatch && specMatch;
+      return match && catMatch;
     });
     
     if (sortBy === 'price-asc') result.sort((a, b) => a.channelPrice - b.channelPrice);
     else if (sortBy === 'price-desc') result.sort((a, b) => b.channelPrice - a.channelPrice);
     
     return result;
-  }, [searchTerm, activeCategory, activeUnit, activeSpec, sortBy, products]);
+  }, [searchTerm, activeCategory, sortBy, products]);
 
   const handleResetFilters = () => {
     setSearchTerm('');
     setActiveCategory('全部');
-    setActiveUnit('全部');
-    setActiveSpec('全部');
     setSortBy('default');
   };
 
@@ -312,6 +300,7 @@ function App() {
       }
       const rows = text.split(/\r?\n/).filter(r => r.trim() !== '');
       if (rows.length < 2) throw new Error('Format error');
+      
       const parseLine = (line: string) => {
         const result = [];
         let current = '';
@@ -325,8 +314,14 @@ function App() {
         result.push(current.trim());
         return result;
       };
+
       const headerRow = parseLine(rows[0]);
-      const findIndex = (keys: string[]) => headerRow.findIndex(h => keys.some(k => h.toLowerCase().includes(k.toLowerCase())));
+      const findIndex = (keys: string[]) => {
+        const idx = headerRow.findIndex(h => keys.some(k => h.trim().toLowerCase() === k.toLowerCase()));
+        if (idx !== -1) return idx;
+        return headerRow.findIndex(h => keys.some(k => h.toLowerCase().includes(k.toLowerCase())));
+      };
+
       const mapping = {
         sku: findIndex(HEADER_MAP.sku),
         name: findIndex(HEADER_MAP.name),
@@ -336,9 +331,12 @@ function App() {
         channelPrice: findIndex(HEADER_MAP.channelPrice),
         retailPrice: findIndex(HEADER_MAP.retailPrice),
         category: findIndex(HEADER_MAP.category),
-        image: findIndex(HEADER_MAP.image)
+        image: findIndex(HEADER_MAP.image),
+        manufacturer: findIndex(HEADER_MAP.manufacturer)
       };
+
       const cleanNum = (v: string) => parseFloat(v?.replace(/[^\d.]/g, '')) || 0;
+      
       const newProducts = rows.slice(1).map((row, i) => {
         const cols = parseLine(row);
         return {
@@ -346,30 +344,27 @@ function App() {
           sku: mapping.sku !== -1 ? cols[mapping.sku] : `SKU-${i}`,
           name: mapping.name !== -1 ? cols[mapping.name] : '未命名',
           spec: mapping.spec !== -1 ? cols[mapping.spec] : '', 
-          unit: mapping.unit !== -1 ? cols[mapping.unit] : '件', 
+          unit: mapping.unit !== -1 ? cols[mapping.unit] : '', 
           platformPrice: mapping.platformPrice !== -1 ? cleanNum(cols[mapping.platformPrice]) : 0,
           channelPrice: mapping.channelPrice !== -1 ? cleanNum(cols[mapping.channelPrice]) : 0,
           retailPrice: mapping.retailPrice !== -1 ? cleanNum(cols[mapping.retailPrice]) : 0,
           image: mapping.image !== -1 ? cols[mapping.image] : '',
-          manufacturer: '',
+          manufacturer: mapping.manufacturer !== -1 ? cols[mapping.manufacturer] : '',
           category: mapping.category !== -1 ? cols[mapping.category] : '默认'
         };
       });
       setProducts(prev => [...newProducts, ...prev]);
-      alert(`已成功导入 ${newProducts.length} 条产品数据（已关联“素材CDN”字段）`);
-    } catch (err) { alert('导入失败，请确保CSV列头包含“素材CDN”或相应标题'); }
+      alert(`已成功导入 ${newProducts.length} 条产品数据`);
+    } catch (err) { alert('导入失败，请确保CSV表头包含：SKU编码, 产品名称, 规格, 单位...'); }
     e.target.value = '';
   };
 
   const handleExportScheme = () => {
     if (!currentSet) return;
-    
-    let csvContent = "\uFEFF"; // UTF-8 BOM
+    let csvContent = "\uFEFF"; 
     csvContent += "方案名称,档位预算,选品折扣,数量,产品名称,SKU,规格,单位,零售价,折后价(计入预算),我方成本(平台价),素材CDN,杂费合计,单包税额,含税单价,全案总额\n";
-
     currentSet.tiers.forEach(tier => {
       const items = tier.selectedProductIds.map(id => products.find(p => p.id === id)).filter(Boolean) as Product[];
-      
       const totalRetail = items.reduce((s, p) => s + p.retailPrice, 0);
       const productDiscountedPrice = totalRetail * (tier.discountRate / 100);
       const otherCosts = tier.boxCost + tier.laborCost + tier.logisticsCost;
@@ -377,7 +372,6 @@ function App() {
       const unitTax = unitUntaxedPrice * (tier.taxRate / 100);
       const finalUnitSellingPrice = unitUntaxedPrice + unitTax;
       const totalAmount = finalUnitSellingPrice * tier.quantity;
-
       if (items.length === 0) {
         csvContent += `${currentSet.name},${tier.targetTierPrice},${tier.discountRate}%,${tier.quantity},未选品,-,-,-,0,0,0,-,${otherCosts},0,${finalUnitSellingPrice.toFixed(2)},${totalAmount.toFixed(2)}\n`;
       } else {
@@ -390,16 +384,11 @@ function App() {
         });
       }
     });
-
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
+    link.setAttribute("href", URL.createObjectURL(blob));
     link.setAttribute("download", `方案报表_${currentSet.name}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
   };
 
   const handleCreateSet = () => {
@@ -434,15 +423,7 @@ function App() {
       });
     } else {
       setEditingTierId(null);
-      setTierForm({
-        targetPrice: '500',
-        discount: '80',
-        quantity: '100',
-        box: '25',
-        labor: '5',
-        logistics: '15',
-        tax: '6'
-      });
+      setTierForm({ targetPrice: '500', discount: '80', quantity: '100', box: '25', labor: '5', logistics: '15', tax: '6' });
     }
     setIsTierModalOpen(true);
   };
@@ -482,7 +463,6 @@ function App() {
       setActiveTierId(tid);
     }
     setIsTierModalOpen(false);
-    setEditingTierId(null);
   };
 
   const addToTier = (pid: string) => {
@@ -617,24 +597,6 @@ function App() {
                   activeItem={activeCategory} 
                   onSelect={setActiveCategory} 
                 />
-                
-                <FilterRow 
-                  label="规格筛选" 
-                  icon={Type} 
-                  items={specs} 
-                  activeItem={activeSpec} 
-                  onSelect={setActiveSpec}
-                  activeColor="bg-[#1B4332]"
-                />
-
-                <FilterRow 
-                  label="单位筛选" 
-                  icon={Filter} 
-                  items={units} 
-                  activeItem={activeUnit} 
-                  onSelect={setActiveUnit}
-                  activeColor="bg-[#B08D57]"
-                />
               </div>
             </div>
             
@@ -648,8 +610,8 @@ function App() {
                        分销: ¥{p.channelPrice} | 零售: ¥{p.retailPrice}
                     </p>
                     <div className="flex items-center gap-2 mt-1 flex-wrap">
-                      {p.spec && <span className="text-[8px] bg-[#1B4332]/5 text-[#1B4332] px-1.5 py-0.5 rounded font-bold">{p.spec}</span>}
-                      <span className="text-[8px] bg-[#B08D57]/5 text-[#B08D57] px-1.5 py-0.5 rounded font-bold">{p.unit}</span>
+                      {p.spec && <span className="text-[8px] bg-[#1B4332]/5 text-[#1B4332] px-1.5 py-0.5 rounded font-bold whitespace-nowrap">规格: {p.spec}</span>}
+                      {p.unit && <span className="text-[8px] bg-[#B08D57]/5 text-[#B08D57] px-1.5 py-0.5 rounded font-bold whitespace-nowrap">单位: {p.unit}</span>}
                       <p className="text-[8px] text-gray-300 uppercase font-mono font-bold tracking-widest">{p.sku}</p>
                     </div>
                   </div>
@@ -671,7 +633,7 @@ function App() {
             <div className="max-w-6xl mx-auto">
               <div className="mb-12 text-center">
                 <h2 className="text-4xl font-serif font-bold text-[#1B4332] mb-3">方案管理中心</h2>
-                <p className="text-gray-400 font-medium tracking-wide">管理所有藏镜山水礼赠策划方案</p>
+                <p className="text-gray-400 font-medium tracking-wide italic">管理所有藏镜山水礼赠策划方案</p>
               </div>
               {giftSets.length === 0 ? (
                 <div className="bg-white border-2 border-dashed border-[#E5E1D1] rounded-[40px] p-20 flex flex-col items-center justify-center opacity-40">
@@ -729,7 +691,7 @@ function App() {
                       <div className={`px-6 py-5 flex justify-between items-center ${active ? 'bg-[#1B4332] text-white' : 'bg-[#FDFCF8] border-b'}`}>
                         <div>
                           <p className="text-lg font-bold font-serif">{tier.targetTierPrice} 元预算档</p>
-                          <p className={`text-[9px] font-bold mt-0.5 ${active ? 'opacity-60' : 'text-gray-400'}`}>选品折扣: {tier.discountRate}% | 数量: {tier.quantity}套</p>
+                          <p className={`text-[9px] font-bold mt-0.5 ${active ? 'opacity-60' : 'text-gray-400'}`}>折扣: {tier.discountRate}% | {tier.quantity}套</p>
                         </div>
                         <div className="flex gap-1">
                           <button onClick={(e) => { e.stopPropagation(); handleOpenTierSettings(tier); }} className={`p-2 rounded-xl transition-all ${active ? 'hover:bg-white/10 text-white' : 'text-gray-300 hover:text-[#B08D57]'}`}><Settings size={16}/></button>
@@ -741,7 +703,7 @@ function App() {
                         {items.length === 0 ? (
                           <div className="h-full flex flex-col items-center justify-center text-gray-200 opacity-50">
                              <Plus size={32} className="mb-2" />
-                             <p className="text-[9px] font-bold uppercase tracking-widest">请点击左侧产品选入</p>
+                             <p className="text-[9px] font-bold uppercase tracking-widest text-center">点击左侧列表添加产品</p>
                           </div>
                         ) : items.map((it, idx) => (
                           <div key={idx} className="flex items-center gap-2.5 p-2 bg-white border border-gray-100 rounded-xl shadow-sm group/item animate-in fade-in slide-in-from-left-2 transition-all hover:border-[#1B4332]/30">
@@ -750,7 +712,7 @@ function App() {
                                <p className="text-[11px] font-bold text-[#1B4332] truncate">{it.name}</p>
                                <div className="flex justify-between mt-0.5 items-baseline">
                                  <p className="text-[8px] text-[#B08D57] font-bold">折后: ¥{(it.retailPrice * (tier.discountRate / 100)).toFixed(1)}</p>
-                                 <p className="text-[7px] text-gray-300 font-medium">{it.spec ? `${it.spec}/` : ''}{it.unit} | ¥{it.retailPrice}</p>
+                                 <p className="text-[7px] text-gray-400 font-medium whitespace-nowrap">规格: {it.spec} | 单位: {it.unit}</p>
                                </div>
                             </div>
                             <button onClick={(e) => { e.stopPropagation(); removeFromTier(tier.id, idx); }} className="opacity-0 group-hover/item:opacity-100 p-1.5 text-gray-300 hover:text-red-500 transition-all"><X size={12}/></button>
@@ -761,17 +723,16 @@ function App() {
                       <div className={`p-6 border-t transition-all shrink-0 ${isOverBudget ? 'bg-red-50/50' : 'bg-[#FDFCF8]'}`}>
                         <div className="space-y-3">
                           <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 text-[8px] font-bold text-gray-400 uppercase border-b pb-3 border-black/5">
-                             <div className="flex justify-between items-center"><span>选品总零售价:</span> <span className="text-gray-700">¥{totalRetail.toFixed(1)}</span></div>
-                             <div className="flex justify-between items-center pl-2 border-l border-black/5"><span>杂费包材:</span> <span className="text-gray-700">¥{otherCosts.toFixed(1)}</span></div>
-                             <div className="flex justify-between items-center"><span>我方总成本:</span> <span className="text-gray-700">¥{unitOurTotalCost.toFixed(1)}</span></div>
+                             <div className="flex justify-between items-center"><span>选品总价:</span> <span className="text-gray-700">¥{totalRetail.toFixed(1)}</span></div>
+                             <div className="flex justify-between items-center pl-2 border-l border-black/5"><span>包材杂费:</span> <span className="text-gray-700">¥{otherCosts.toFixed(1)}</span></div>
+                             <div className="flex justify-between items-center"><span>我方成本:</span> <span className="text-gray-700">¥{unitOurTotalCost.toFixed(1)}</span></div>
                              <div className="flex justify-between items-center pl-2 border-l border-black/5"><span>单包税额:</span> <span className="text-gray-700">¥{unitTax.toFixed(1)}</span></div>
                           </div>
-
                           <div className="space-y-2">
                              <div>
                                 <div className="flex justify-between items-center mb-1">
-                                  <p className="text-[9px] font-black uppercase text-[#B08D57] flex items-center gap-1"><Tag size={10}/> 折后零售总值 (对标预算)</p>
-                                  {isOverBudget && <span className="text-[8px] bg-red-500 text-white px-1.5 py-0.5 rounded-full font-bold animate-pulse">超出预算!</span>}
+                                  <p className="text-[9px] font-black uppercase text-[#B08D57] flex items-center gap-1"><Tag size={10}/> 对标折后零售总值</p>
+                                  {isOverBudget && <span className="text-[8px] bg-red-500 text-white px-1.5 py-0.5 rounded-full font-bold animate-pulse">超额</span>}
                                 </div>
                                 <div className={`bg-white p-3 rounded-xl border flex justify-between items-center ${isOverBudget ? 'border-red-400 shadow-md shadow-red-100' : 'border-[#1B4332]/10 shadow-sm'}`}>
                                   <p className={`text-xl font-serif font-black ${isOverBudget ? 'text-red-600' : 'text-[#1B4332]'}`}>¥{productDiscountedPrice.toFixed(1)}</p>
@@ -783,22 +744,15 @@ function App() {
                                   </div>
                                 </div>
                              </div>
-
-                             <div className="bg-white/60 p-3 border border-black/5 rounded-xl flex justify-between items-center group/total">
+                             <div className="bg-white/60 p-3 border border-black/5 rounded-xl flex justify-between items-center">
                                 <div>
-                                   <p className="text-[7px] text-gray-400 font-bold uppercase tracking-widest flex items-center gap-1"><BadgeDollarSign size={8}/> 含税总结算单价</p>
+                                   <p className="text-[7px] text-gray-400 font-bold uppercase tracking-widest flex items-center gap-1"><BadgeDollarSign size={8}/> 含税结算单价</p>
                                    <p className="text-base font-black text-[#1B4332]">¥{finalUnitSellingPrice.toFixed(1)}</p>
                                 </div>
                                 <div className="text-right">
-                                   <p className="text-[7px] text-gray-400 font-bold uppercase tracking-widest">我方利润率</p>
-                                   <p className={`text-xs font-black ${unitUntaxedPrice - unitOurTotalCost > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                     {unitUntaxedPrice > 0 ? (((unitUntaxedPrice - unitOurTotalCost) / unitUntaxedPrice) * 100).toFixed(1) : 0}%
-                                   </p>
+                                   <p className="text-[7px] text-gray-400 font-bold uppercase tracking-widest">全案总额</p>
+                                   <p className="text-[10px] font-black text-[#1B4332]">¥{(finalUnitSellingPrice * tier.quantity).toLocaleString()}</p>
                                 </div>
-                             </div>
-                             
-                             <div className="flex justify-center">
-                                <p className="text-[8px] font-bold text-gray-300 font-mono">全案总额: ¥{(finalUnitSellingPrice * tier.quantity).toLocaleString()}</p>
                              </div>
                           </div>
                         </div>
@@ -816,79 +770,75 @@ function App() {
       <Modal isOpen={isPackageModalOpen} onClose={() => setIsPackageModalOpen(false)} title="策划新设计方案">
         <div className="space-y-4">
           <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block">方案项目名称</label>
-          <input autoFocus type="text" placeholder="例如：XX银行2024中秋礼赠方案" className="w-full px-5 py-4 bg-[#F9F7F2] border border-[#E5E1D1] rounded-[24px] outline-none font-bold text-lg focus:border-[#1B4332] transition-all" value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleCreateSet()} />
-          <button onClick={handleCreateSet} className="w-full mt-2 py-4 bg-[#1B4332] text-white rounded-[24px] font-bold shadow-xl active:scale-95 transition-all hover:bg-[#2D5A47]">开启数字化选品</button>
+          <input autoFocus type="text" placeholder="例如：XX银行2024礼赠方案" className="w-full px-5 py-4 bg-[#F9F7F2] border border-[#E5E1D1] rounded-[24px] outline-none font-bold text-lg focus:border-[#1B4332]" value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleCreateSet()} />
+          <button onClick={handleCreateSet} className="w-full mt-2 py-4 bg-[#1B4332] text-white rounded-[24px] font-bold shadow-xl active:scale-95 transition-all">开启方案设计</button>
         </div>
       </Modal>
 
-      <Modal isOpen={isTierModalOpen} onClose={() => setIsTierModalOpen(false)} title={editingTierId ? "调整档位财务模型" : "配置档位财务模型"} maxWidth="max-w-2xl">
+      <Modal isOpen={isTierModalOpen} onClose={() => setIsTierModalOpen(false)} title={editingTierId ? "调整档位配置" : "新增档位配置"} maxWidth="max-w-2xl">
          <div className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
                <div className="col-span-2">
-                  <label className="text-[10px] font-bold text-[#B08D57] block mb-2 uppercase tracking-widest flex items-center gap-2"><Tag size={12}/> 目标预算档位 (对比折后零售价之和 ¥)</label>
-                  <input type="number" className="w-full px-6 py-4 bg-[#F9F7F2] border border-[#E5E1D1] rounded-2xl font-black text-2xl outline-none focus:border-[#1B4332]" value={tierForm.targetPrice} onChange={(e) => setTierForm({...tierForm, targetPrice: e.target.value})} />
+                  <label className="text-[10px] font-bold text-[#B08D57] block mb-2 uppercase tracking-widest flex items-center gap-2"><Tag size={12}/> 档位预算 (¥)</label>
+                  <input type="number" className="w-full px-6 py-4 bg-[#F9F7F2] border border-[#E5E1D1] rounded-2xl font-black text-2xl outline-none" value={tierForm.targetPrice} onChange={(e) => setTierForm({...tierForm, targetPrice: e.target.value})} />
                </div>
                <div>
-                  <label className="text-[10px] font-bold text-gray-400 block mb-2 uppercase flex items-center gap-2"><Percent size={12}/> 选品折扣率 (%)</label>
-                  <input type="number" className="w-full px-4 py-3 bg-[#F9F7F2] border border-[#E5E1D1] rounded-xl font-bold outline-none focus:border-[#1B4332]" value={tierForm.discount} onChange={(e) => setTierForm({...tierForm, discount: e.target.value})} />
+                  <label className="text-[10px] font-bold text-gray-400 block mb-2 uppercase"><Percent size={12} className="inline mr-1"/> 选品折扣 (%)</label>
+                  <input type="number" className="w-full px-4 py-3 bg-[#F9F7F2] border border-[#E5E1D1] rounded-xl font-bold outline-none" value={tierForm.discount} onChange={(e) => setTierForm({...tierForm, discount: e.target.value})} />
                </div>
                <div>
-                  <label className="text-[10px] font-bold text-gray-400 block mb-2 uppercase flex items-center gap-2"><RefreshCcw size={12}/> 礼包需求量 (套)</label>
-                  <input type="number" className="w-full px-4 py-3 bg-[#F9F7F2] border border-[#E5E1D1] rounded-xl font-bold outline-none focus:border-[#1B4332]" value={tierForm.quantity} onChange={(e) => setTierForm({...tierForm, quantity: e.target.value})} />
+                  <label className="text-[10px] font-bold text-gray-400 block mb-2 uppercase"><RefreshCcw size={12} className="inline mr-1"/> 需求数量 (套)</label>
+                  <input type="number" className="w-full px-4 py-3 bg-[#F9F7F2] border border-[#E5E1D1] rounded-xl font-bold outline-none" value={tierForm.quantity} onChange={(e) => setTierForm({...tierForm, quantity: e.target.value})} />
                </div>
             </div>
-
             <div className="p-6 bg-gray-50 rounded-[32px] border border-dashed border-gray-200">
-               <p className="text-[10px] font-bold text-[#B08D57] mb-4 uppercase tracking-widest">其他杂费成本 (单包金额)</p>
+               <p className="text-[10px] font-bold text-[#B08D57] mb-4 uppercase tracking-widest">单包杂费与税率</p>
                <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <label className="text-[9px] text-gray-400 block mb-1 flex items-center gap-1"><Box size={10}/> 包装礼盒</label>
-                    <input type="number" className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold outline-none focus:border-[#1B4332]" value={tierForm.box} onChange={(e) => setTierForm({...tierForm, box: e.target.value})} />
+                    <label className="text-[9px] text-gray-400 block mb-1">包装包材</label>
+                    <input type="number" className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold" value={tierForm.box} onChange={(e) => setTierForm({...tierForm, box: e.target.value})} />
                   </div>
                   <div>
-                    <label className="text-[9px] text-gray-400 block mb-1 flex items-center gap-1"><Users size={10}/> 打包人工</label>
-                    <input type="number" className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold outline-none focus:border-[#1B4332]" value={tierForm.labor} onChange={(e) => setTierForm({...tierForm, labor: e.target.value})} />
+                    <label className="text-[9px] text-gray-400 block mb-1">打包人工</label>
+                    <input type="number" className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold" value={tierForm.labor} onChange={(e) => setTierForm({...tierForm, labor: e.target.value})} />
                   </div>
                   <div>
-                    <label className="text-[9px] text-gray-400 block mb-1 flex items-center gap-1"><Truck size={10}/> 物流快递</label>
-                    <input type="number" className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold outline-none focus:border-[#1B4332]" value={tierForm.logistics} onChange={(e) => setTierForm({...tierForm, logistics: e.target.value})} />
+                    <label className="text-[9px] text-gray-400 block mb-1">快递物流</label>
+                    <input type="number" className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold" value={tierForm.logistics} onChange={(e) => setTierForm({...tierForm, logistics: e.target.value})} />
                   </div>
                </div>
-               <div className="mt-4 flex items-center gap-4">
-                  <div className="flex-1">
-                    <label className="text-[9px] text-gray-400 block mb-1 uppercase font-bold tracking-widest">增值税率 (%)</label>
-                    <input type="number" className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold outline-none focus:border-[#1B4332]" value={tierForm.tax} onChange={(e) => setTierForm({...tierForm, tax: e.target.value})} />
-                  </div>
+               <div className="mt-4">
+                  <label className="text-[9px] text-gray-400 block mb-1">税率 (%)</label>
+                  <input type="number" className="w-24 px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold" value={tierForm.tax} onChange={(e) => setTierForm({...tierForm, tax: e.target.value})} />
                </div>
             </div>
-
-            <button onClick={handleSaveTier} className="w-full py-4 bg-[#B08D57] text-white rounded-[24px] font-bold shadow-xl active:scale-95 transition-all hover:bg-[#A07C48]">
-              {editingTierId ? "保存财务调整" : "确认模型并进入选品"}
-            </button>
+            <button onClick={handleSaveTier} className="w-full py-4 bg-[#B08D57] text-white rounded-[24px] font-bold shadow-xl active:scale-95 transition-all">保存设置</button>
          </div>
       </Modal>
 
-      <Modal isOpen={isLibraryModalOpen} onClose={() => setIsLibraryModalOpen(false)} title="藏镜山水-产品库资源" maxWidth="max-w-7xl">
+      <Modal isOpen={isLibraryModalOpen} onClose={() => setIsLibraryModalOpen(false)} title="藏镜山水-数字化产品库" maxWidth="max-w-7xl">
          <div className="flex flex-col h-full gap-5">
            <div className="flex justify-between items-center bg-[#F9F7F2] p-6 rounded-[32px] border border-[#E5E1D1]">
              <div className="flex gap-3">
-                <label className="cursor-pointer bg-[#1B4332] text-white px-6 py-3 rounded-2xl font-bold text-sm shadow-xl hover:bg-[#2D5A47] transition-all flex items-center gap-2 active:scale-95">
-                  <FileUp size={18} /> 批量导入素材表 (CSV)
+                <label className="cursor-pointer bg-[#1B4332] text-white px-6 py-3 rounded-2xl font-bold text-sm shadow-xl flex items-center gap-2 active:scale-95 transition-all">
+                  <FileUp size={18} /> 导入数据表 (CSV)
                   <input type="file" accept=".csv" className="hidden" onChange={handleFileUpload} />
                 </label>
-                <button onClick={() => setProducts([{ id: Date.now().toString(), sku: 'NEW-' + Math.floor(Math.random()*1000), name: '待录入产品', spec: '', unit: '件', platformPrice: 0, channelPrice: 0, retailPrice: 0, image: '', manufacturer: '', category: '默认' }, ...products])} className="bg-white border border-[#E5E1D1] text-[#1B4332] px-6 py-3 rounded-2xl font-bold text-sm hover:border-[#1B4332] transition-all active:scale-95">手动录入</button>
+                <button onClick={() => setProducts([{ id: Date.now().toString(), sku: 'NEW-' + Math.floor(Math.random()*1000), name: '新产品名称', spec: '', unit: '件', platformPrice: 0, channelPrice: 0, retailPrice: 0, image: '', manufacturer: '', category: '默认' }, ...products])} className="bg-white border border-[#E5E1D1] text-[#1B4332] px-6 py-3 rounded-2xl font-bold text-sm hover:border-[#1B4332] active:scale-95 transition-all">手动新增</button>
              </div>
-             <button onClick={() => { if(confirm('清空产品库数据？')) { localStorage.removeItem(STORAGE_KEY_PRODUCTS); window.location.reload(); } }} className="text-red-300 hover:text-red-500 text-[10px] font-black flex items-center gap-1 transition-colors uppercase tracking-widest"><RefreshCcw size={12}/> Clear Data</button>
+             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest italic flex items-center gap-2">
+               <AlertCircle size={14}/> 请确保 CSV 包含列：SKU编码, 产品名称, 规格, 单位, 零售价...
+             </p>
            </div>
-
            <div className="border border-[#E5E1D1] rounded-[32px] overflow-hidden bg-white shadow-inner flex-1 overflow-auto custom-scrollbar">
               <table className="w-full text-left border-collapse min-w-[1100px]">
-                <thead className="bg-[#FDFCF8] text-[10px] font-bold text-[#B08D57] border-b border-[#E5E1D1] sticky top-0 z-50 uppercase tracking-widest">
+                <thead className="bg-[#FDFCF8] text-[10px] font-bold text-[#B08D57] border-b sticky top-0 z-50 uppercase tracking-widest">
                   <tr>
-                    <th className="px-6 py-4">产品基本信息</th>
-                    <th className="px-4 py-4">分类/规格/单位</th>
+                    <th className="px-6 py-4">产品基础信息 (SKU/品名)</th>
+                    <th className="px-4 py-4">核心参数 (规格/单位)</th>
+                    <th className="px-4 py-4">厂商与分类</th>
                     <th className="px-4 py-4 text-center">价格体系 (¥)</th>
-                    <th className="px-4 py-4">素材CDN地址</th>
+                    <th className="px-4 py-4">素材 CDN</th>
                     <th className="px-6 py-4 text-right">操作</th>
                   </tr>
                 </thead>
@@ -896,42 +846,51 @@ function App() {
                   {products.map(p => (
                     <tr key={p.id} className="hover:bg-gray-50/80 transition-colors">
                       <td className="px-6 py-4 flex gap-4 items-center">
-                        <ProductImage src={p.image} name={p.name} className="w-14 h-14 rounded-xl object-cover border shadow-sm shrink-0" onHover={handleImageHover} />
-                        <div className="flex-1">
-                          <input className="font-bold text-[#1B4332] bg-transparent outline-none w-full text-sm" value={p.name} onChange={(e) => setProducts(products.map(x => x.id === p.id ? {...x, name: e.target.value} : x))} />
+                        <ProductImage src={p.image} name={p.name} className="w-14 h-14 rounded-xl object-cover border shrink-0 shadow-sm" onHover={handleImageHover} />
+                        <div className="flex-1 min-w-0">
+                          <input className="font-bold text-[#1B4332] bg-transparent outline-none w-full text-sm truncate" value={p.name} onChange={(e) => setProducts(products.map(x => x.id === p.id ? {...x, name: e.target.value} : x))} />
                           <input className="text-[10px] font-mono text-gray-300 bg-transparent outline-none w-full mt-1 font-bold" value={p.sku} onChange={(e) => setProducts(products.map(x => x.id === p.id ? {...x, sku: e.target.value} : x))} />
                         </div>
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex flex-col gap-2">
-                          <input className="text-[10px] font-bold text-[#1B4332] bg-[#1B4332]/5 rounded px-2 py-1 outline-none border border-transparent focus:border-[#1B4332]/20" placeholder="分类" value={p.category} onChange={(e) => setProducts(products.map(x => x.id === p.id ? {...x, category: e.target.value} : x))} />
-                          <div className="flex gap-2">
-                            <input className="flex-1 text-[10px] font-bold text-gray-500 bg-gray-50 rounded px-2 py-1 outline-none border border-transparent focus:border-gray-200" placeholder="规格" value={p.spec} onChange={(e) => setProducts(products.map(x => x.id === p.id ? {...x, spec: e.target.value} : x))} />
-                            <input className="flex-1 text-[10px] font-bold text-[#B08D57] bg-[#B08D57]/5 rounded px-2 py-1 outline-none border border-transparent focus:border-[#B08D57]/20" placeholder="单位" value={p.unit} onChange={(e) => setProducts(products.map(x => x.id === p.id ? {...x, unit: e.target.value} : x))} />
+                          <div className="flex items-center gap-2">
+                             <span className="text-[8px] text-gray-400 font-bold w-7">规格:</span>
+                             <input className="flex-1 text-[10px] font-bold text-gray-700 bg-gray-50 rounded px-2 py-1 outline-none border border-transparent focus:border-gray-200" value={p.spec} onChange={(e) => setProducts(products.map(x => x.id === p.id ? {...x, spec: e.target.value} : x))} />
+                          </div>
+                          <div className="flex items-center gap-2">
+                             <span className="text-[8px] text-gray-400 font-bold w-7">单位:</span>
+                             <input className="flex-1 text-[10px] font-bold text-[#B08D57] bg-[#B08D57]/5 rounded px-2 py-1 outline-none border border-transparent focus:border-[#B08D57]/20" value={p.unit} onChange={(e) => setProducts(products.map(x => x.id === p.id ? {...x, unit: e.target.value} : x))} />
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-4">
-                        <div className="flex gap-4 justify-center">
+                         <div className="space-y-1.5">
+                            <input className="text-[10px] font-bold text-[#1B4332] bg-[#1B4332]/5 rounded px-2 py-1 outline-none w-full" placeholder="电商分类" value={p.category} onChange={(e) => setProducts(products.map(x => x.id === p.id ? {...x, category: e.target.value} : x))} />
+                            <input className="text-[9px] font-medium text-gray-400 bg-transparent outline-none w-full px-2" placeholder="厂商名称" value={p.manufacturer} onChange={(e) => setProducts(products.map(x => x.id === p.id ? {...x, manufacturer: e.target.value} : x))} />
+                         </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex gap-3 justify-center">
                           <div className="text-center">
-                             <span className="text-[8px] text-gray-300 font-black block mb-1 uppercase">PLATFORM</span>
-                             <input type="number" className="bg-[#F9F7F2] rounded-xl px-2 py-1.5 border border-[#E5E1D1] w-24 text-xs font-black text-center focus:border-[#1B4332] outline-none" value={p.platformPrice} onChange={(e) => setProducts(products.map(x => x.id === p.id ? {...x, platformPrice: Number(e.target.value)} : x))} />
+                             <span className="text-[7px] text-gray-300 font-bold block mb-1">平台</span>
+                             <input type="number" className="bg-[#F9F7F2] rounded-lg px-1 py-1 border border-[#E5E1D1] w-16 text-[10px] text-center" value={p.platformPrice} onChange={(e) => setProducts(products.map(x => x.id === p.id ? {...x, platformPrice: Number(e.target.value)} : x))} />
                           </div>
                           <div className="text-center">
-                             <span className="text-[8px] text-gray-300 font-black block mb-1 uppercase">CHANNEL</span>
-                             <input type="number" className="bg-[#F9F7F2] rounded-xl px-2 py-1.5 border border-[#E5E1D1] w-24 text-xs font-black text-center focus:border-[#1B4332] outline-none" value={p.channelPrice} onChange={(e) => setProducts(products.map(x => x.id === p.id ? {...x, channelPrice: Number(e.target.value)} : x))} />
+                             <span className="text-[7px] text-gray-300 font-bold block mb-1">渠道</span>
+                             <input type="number" className="bg-[#F9F7F2] rounded-lg px-1 py-1 border border-[#E5E1D1] w-16 text-[10px] text-center" value={p.channelPrice} onChange={(e) => setProducts(products.map(x => x.id === p.id ? {...x, channelPrice: Number(e.target.value)} : x))} />
                           </div>
                           <div className="text-center">
-                             <span className="text-[8px] text-gray-300 font-black block mb-1 uppercase">RETAIL</span>
-                             <input type="number" className="bg-[#F9F7F2] rounded-xl px-2 py-1.5 border border-[#E5E1D1] w-24 text-xs font-black text-center focus:border-[#1B4332] outline-none" value={p.retailPrice} onChange={(e) => setProducts(products.map(x => x.id === p.id ? {...x, retailPrice: Number(e.target.value)} : x))} />
+                             <span className="text-[7px] text-gray-400 font-black block mb-1">零售</span>
+                             <input type="number" className="bg-[#F9F7F2] rounded-lg px-1 py-1 border border-[#E5E1D1] w-16 text-[11px] text-center font-black" value={p.retailPrice} onChange={(e) => setProducts(products.map(x => x.id === p.id ? {...x, retailPrice: Number(e.target.value)} : x))} />
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-4 max-w-[200px]">
-                        <input className="text-[9px] text-gray-400 bg-[#F9F7F2] rounded-lg px-2 py-1 outline-none border border-transparent focus:border-[#1B4332]/20 w-full font-mono" value={p.image} placeholder="CDN URL" onChange={(e) => setProducts(products.map(x => x.id === p.id ? {...x, image: e.target.value} : x))} />
+                      <td className="px-4 py-4 max-w-[150px]">
+                        <input className="text-[9px] text-gray-400 bg-[#F9F7F2] rounded-lg px-2 py-1 outline-none w-full truncate font-mono" value={p.image} placeholder="素材链接" onChange={(e) => setProducts(products.map(x => x.id === p.id ? {...x, image: e.target.value} : x))} />
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <button onClick={() => setProducts(products.filter(x => x.id !== p.id))} className="text-gray-200 hover:text-red-500 p-3 transition-all active:scale-75"><Trash2 size={16}/></button>
+                        <button onClick={() => setProducts(products.filter(x => x.id !== p.id))} className="text-gray-200 hover:text-red-500 p-2 transition-all"><Trash2 size={16}/></button>
                       </td>
                     </tr>
                   ))}
@@ -941,10 +900,9 @@ function App() {
          </div>
       </Modal>
 
-      {/* 图片悬停大图预览 */}
       {hoveredImage && (
         <div 
-          className="fixed z-[3000] pointer-events-none transition-opacity duration-200 shadow-2xl"
+          className="fixed z-[3000] pointer-events-none shadow-2xl animate-in zoom-in-95 duration-200"
           style={{ 
             left: Math.min(hoveredImage.x + 20, window.innerWidth - 320), 
             top: Math.min(hoveredImage.y + 20, window.innerHeight - 320),
@@ -952,12 +910,8 @@ function App() {
             height: '300px'
           }}
         >
-          <div className="w-full h-full bg-white p-2 rounded-[32px] border border-[#E5E1D1] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <img 
-              src={hoveredImage.url} 
-              className="w-full h-full object-contain rounded-[24px]" 
-              alt="Preview"
-            />
+          <div className="w-full h-full bg-white p-2 rounded-[32px] border border-[#E5E1D1] overflow-hidden">
+            <img src={hoveredImage.url} className="w-full h-full object-contain rounded-[24px]" alt="Preview"/>
           </div>
         </div>
       )}
@@ -968,13 +922,8 @@ function App() {
         .font-serif { font-family: 'Noto Serif SC', serif; }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #E5E1D1; border-radius: 10px; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
-        
-        /* 针对筛选区的微调滚动条 */
         .scrollbar-thin::-webkit-scrollbar { height: 3px; }
         .scrollbar-thin::-webkit-scrollbar-thumb { background: #E5E1D1; border-radius: 4px; }
-        .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
       `}</style>
     </div>
   );
